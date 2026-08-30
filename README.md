@@ -1,120 +1,63 @@
-# Unbridle
+# Unbridle (Linux, minimal)
 
-**Unbridle** is a lightweight Linux application designed to improve Discord voice connectivity.
+A small LD_PRELOAD hook that makes Discord's Linux client route through a
+proxy and/or perform a light UDP manipulation that helps bypass regional
+voice-chat blocking (e.g. UAE) - without a VPN, and without touching any
+other application's network traffic. Linux port of
+[hunbridle/unbridle](https://github.com/hunbridle/unbridle).
 
-Unbridle handles Discord's network traffic separately, allowing Discord to use an alternate connection path while the rest of your applications continue using your normal internet connection.
+## Build
 
-## Features
-
-* Designed for Discord
-* Native Linux application
-* Lightweight and simple
-* Only affects Discord traffic
-* Does not interfere with other applications
-* No complicated configuration required
-* Easy to build from source
-* Open source and free to use
-
-## Building
-
-Clone the repository and enter the project directory:
-
-```bash
-cd Unbridle
 ```
-
-Build the project:
-
-```bash
 make
 ```
 
-The compiled files will be placed in:
+Needs GTK3 dev headers (`libgtk-3-dev` on Debian/Ubuntu/Fedora-equivalent).
 
-```text
-build/unbridle
-build/libunbridle.so
+## Use
+
+Run `build/unbridle`. Direct Mode is preselected (recommended for
+most regional voice-blocking cases - no proxy, just the UDP manipulation).
+Click **Activate**, then launch Discord the way you always do - no need to
+find a different icon. Click **Deactivate** to undo it.
+
+Discord must be fully closed when you click Activate/Deactivate.
+
+## How activation works
+
+Activate patches the actual Discord `.desktop` launcher (backing up any
+existing one first) by writing a same-named override to
+`~/.local/share/applications/`, which Linux desktops treat as higher
+priority than the system copy. This is entirely user-level - no root
+needed, and nothing outside your own Discord shortcut is touched.
+
+## Supported installs
+
+Native Discord only (official `.deb`/`.rpm`, or the `.tar.gz` extracted to
+your home directory). **Flatpak and Snap will not work** - both sandbox
+the process in a way that blocks LD_PRELOAD from reaching it. This is a
+sandboxing limitation, not a Discord-version limitation; there's no
+dependency on which Discord release you're running.
+
+## `unbridle-packet.bin` (optional, off by default)
+
+If you create `~/.config/unbridle/unbridle-packet.bin`, its contents
+get sent once before Discord's real voice packet, in addition to the
+built-in manipulation. It's re-read every time, so you can edit it live.
+Nothing is sent here unless you put something there yourself - there is no
+bundled default packet.
+
+## If voice still doesn't work after activating
+
+Confirm the hook actually loaded into every Discord-related process
+(Discord's Linux client spawns several):
+
+```
+for pid in $(pgrep -f -i discord); do
+  echo "$pid: $(tr '\0' '\n' < /proc/$pid/environ 2>/dev/null | grep -c LD_PRELOAD)"
+done
 ```
 
-## Running
-
-After building, start Unbridle with:
-
-```bash
-./build/unbridle
-```
-
-To see the available options:
-
-```bash
-./build/unbridle --help
-```
-
-## What Unbridle Does
-
-Unbridle is designed for situations where Discord voice connectivity is unavailable, unreliable, or unnecessarily slow.
-
-It focuses specifically on Discord rather than changing how your entire computer connects to the internet.
-
-Your browser, games, downloads, and other applications continue using your normal connection.
-
-### Example
-
-Without Unbridle:
-
-```text
-Computer
-│
-├── Discord
-├── Browser
-├── Games
-└── Other applications
-```
-
-With Unbridle:
-
-```text
-Computer
-│
-├── Unbridle
-│   └── Discord
-│
-├── Browser
-├── Games
-└── Other applications
-```
-
-This keeps Unbridle focused on the application it was designed for.
-
-## Linux Support
-
-Unbridle is developed for Linux.
-
-Fedora Linux is currently a primary development environment. Other Linux distributions may work if the required dependencies are available.
-
-## Contributing
-
-Unbridle is free and open source.
-
-Contributions are welcome. You can:
-
-* Add new features
-* Improve existing functionality
-* Fix bugs
-* Improve compatibility
-* Adjust the project for other Linux distributions
-* Fork the project and build your own version
-
-If you make improvements that could benefit other users, consider opening a pull request.
-
-## License
-
-Unbridle is free and open-source software released under the [MIT License](LICENSE).
-
-You are free to use, modify, copy, distribute, and build upon the project in accordance with the license.
-
-## Disclaimer
-
-Unbridle is provided as-is, without warranty.
-
-Users are responsible for complying with the laws, regulations, network policies, and terms of service applicable to their location and network.
+If every line ends in `1`, the hook is loaded everywhere and any remaining
+issue is about the manipulation payload itself, not delivery. If some show
+`0`, that process never got the hook - worth reporting back with which one.
