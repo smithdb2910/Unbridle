@@ -1,4 +1,4 @@
-# Unbridle Linux
+# Unbridle - Linux
 
 A lightweight Linux utility for managing Discord network/proxy configuration.
 
